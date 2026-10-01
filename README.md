@@ -1,5 +1,8 @@
 # Predictive Maintenance & Anomaly Detection System
 
+<img width="1917" height="1018" alt="image" src="https://github.com/user-attachments/assets/d9cecced-97f3-4a98-b53b-7784f3c17b2e" />
+
+
 End-to-end ML application that predicts machine failure probability, flags unusual machine behaviour, explains predictions with SHAP, and serves everything through a FastAPI service and a Streamlit dashboard.
 
 > **Status:** on the author's Windows machine (Python 3.12) the full training run, the 34-test pytest suite and the API `/health` endpoint have been executed successfully. MLflow logging, the dashboard, `/predict` through the running server and Docker Compose are **not yet verified**. Numbers below come from one run (seed 42, 2,000-row held-out test set) and can shift slightly with library versions.
