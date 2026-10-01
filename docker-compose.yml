@@ -1,0 +1,52 @@
+# Train first (see README): the API loads models/model_bundle.joblib, it never trains.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build: .
+    environment:
+      MODEL_PATH: /app/models/model_bundle.joblib
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DECISION_THRESHOLD: ${DECISION_THRESHOLD:-0.50}
+      RISK_MEDIUM_THRESHOLD: ${RISK_MEDIUM_THRESHOLD:-0.40}
+      RISK_HIGH_THRESHOLD: ${RISK_HIGH_THRESHOLD:-0.70}
+      MAX_BATCH_SIZE: ${MAX_BATCH_SIZE:-5000}
+    volumes:
+      - ./models:/app/models
+    ports: ["8000:8000"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  dashboard:
+    build: .
+    command: ["streamlit", "run", "dashboard/app.py", "--server.address=0.0.0.0", "--server.port=8501"]
+    environment:
+      API_URL: http://api:8000
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+    ports: ["8501:8501"]
+    depends_on: [api]
+
+  mlflow:
+    build: .
+    command: ["mlflow", "ui", "--host", "0.0.0.0", "--port", "5000", "--backend-store-uri", "sqlite:////app/mlruns/mlflow.db"]
+    volumes:
+      - ./mlruns:/app/mlruns
+    ports: ["5000:5000"]
+
+volumes:
+  pgdata:
